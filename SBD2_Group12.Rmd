@@ -1,0 +1,81 @@
+---
+title: "SBD2_Group12"
+author: "Lars Wenger"
+date: '2022'
+output:
+  
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+  HTML: default
+  word_document: default
+  pdf_document: default
+---
+````{r setup, include=FALSE, echo=FALSE}
+# Getting started 
+knitr::opts_chunk$set(echo = TRUE)
+
+libraries = c("readr", "ggplot2","Boruta", "dlookr", "ROCR", "caret", "pROC", "dplyr", "ROSE", "corrplot", "DescTools", "ggpubr", "tidyverse", "RColorBrewer", "ggcorrplot", "PerformanceAnalytics", "corrr", "networkD3", "reshape", "knitr")
+ 
+lapply(libraries, function(x) if (!(x %in% installed.packages())) {
+  install.packages(x)
+})
+
+lapply(libraries, library, quietly = TRUE, character.only = TRUE)
+
+rm(list=ls())
+
+set.seed(7)
+
+setwd("C:/Users/Student/SBD2/SBD2_Group12")
+data <- read_csv("loan_sample_12.csv")
+data <- data.frame(data)
+```
+
+
+
+### What are the dimensions of the data set?
+For this we use the function str(). We see, that there are 40'000 obs. of 17 variables.
+
+```{r, echo=FALSE}
+str(data)
+```
+
+### How many numeric and how many categorical variables are included in the data?
+For this we use also the function str(). We see, that there are 12 numerice and 5 charactic varaibles.
+
+```{r}
+str(data)
+```
+
+### Summarize the variables. Discuss the summary statistics obtained.
+BESCHREIBEN
+
+```{r}
+summary(data)
+```
+
+### Check the levels of the target variable by choosing the appropriate visualization. Is the target variable balanced
+
+In the next step, we investigate our target variable. We notice that in our sample, we have 34'813 companies which did not default on their loan and we have 5'187 which did default. 
+```{r}
+table(data$Status)
+```
+
+### Check the distribution of the numeric variables in the data set (include different visual representations).
+
+```{r, echo=FALSE}
+PercTable(data$Status)
+```
+
+```{r}
+ggplot(data = data, 
+       aes(x = data$loan_amnt)) +
+  geom_histogram(fill = "steelblue",
+                 color = "steelblue",
+                 binwidth = 1000) +
+  labs(title = "Distribution",
+       x = "",
+       y = "")
+```
