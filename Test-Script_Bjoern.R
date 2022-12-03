@@ -10,7 +10,6 @@ rm(list=ls())
 
 set.seed(7)
 
-#setwd("C:/Users/Student/SBD2/SBD2_Group12")
 setwd('C:/Git/SBD/SBD2_Group12')
 loan <- read_csv("loan_sample_12.csv")
 data <- data.frame(loan)
@@ -121,15 +120,16 @@ data_under_without <- cbind(data_under_num_without, data_under_cat)
 
 #Looks good !
 
+#(Too good... where are the new outliers?)
 
+#---------FEATURES------------------------------------------------------
 
+#Dimensions of new sets
+dim(data_under_without)
+dim(data_under_num_without)
 
 #Correlation of numeric values to Status
 # ---- Code here ---- 
-
-
-cor(data_under_num)
-
 #Correlation of Categorical values to Status
 # ---- Code here ---- 
 
