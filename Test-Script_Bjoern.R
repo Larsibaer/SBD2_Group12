@@ -41,29 +41,31 @@ table(data$Status)
 barplot(table(data$Status))
 
 
-ggplot(data, aes(x = Status, fill = Status)) +
-  geom_bar() +
-  ylab("Count") +
-  xlab("Status of the loan")
-
-
 # equalizing the sample
 
 set.seed(7)
 data_balanced <- ovun.sample(Status ~ ., data=data, method = "under")
 data_under <- data.frame(data_balanced[["data"]])
 
-ggplot(data_under, aes(x = Status, fill = Status)) +
-  geom_bar() +
-  ylab("Count") +
-  xlab("Status of the loan")
+table(data_under$Status)
+barplot(table(data_under$Status))
+
 
 
 #---------OUTLIERS------------------------------------------------------
 
+#Dimensions of new set
+dim(data_under)
+
 #Numeric Variables
 data_under_num <- data_under %>%
   select_if(is.numeric)
+
+
+#Categorical Variables
+data_under_cat <- data_under %>%
+  select_if(is.character)
+
 
 #Visualize it
 hist(data_under_num)
@@ -115,7 +117,7 @@ text(x = 1:length(data_under_num_without),
 
 # New data set without outliers
 
-# ---- Code here ---- 
+data_under_without <- cbind(data_under_num_without, data_under_cat)
 
 #Looks good !
 
@@ -126,7 +128,7 @@ text(x = 1:length(data_under_num_without),
 # ---- Code here ---- 
 
 
-
+cor(data_under_num)
 
 #Correlation of Categorical values to Status
 # ---- Code here ---- 
