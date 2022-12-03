@@ -18,9 +18,9 @@ data <- data.frame(loan)
 
 
 
-#--------------------------------------
-#--------- Exercise 1 -----------------
-#--------------------------------------
+#----------------------------------------------------------------------------
+#--------- Exercise 1 -------------------------------------------------------
+#----------------------------------------------------------------------------
 
 
 #check data
@@ -34,7 +34,7 @@ summary(data)
 overview <- overview(data)
 list(overview)
 
-
+#---------TARGET SAMPLE------------------------------------------------------
 
 #Target varible
 table(data$Status)
@@ -59,41 +59,37 @@ ggplot(data_under, aes(x = Status, fill = Status)) +
   xlab("Status of the loan")
 
 
-#over-writing data variable
-data <- data_under
-
+#---------OUTLIERS------------------------------------------------------
 
 #Numeric Variables
-data_num <- data %>%
+data_under_num <- data_under %>%
   select_if(is.numeric)
-data_cat <- data %>%
-  select_if(is.character)
 
+#Visualize it
+hist(data_under_num)
 
-hist(data_num)
-
-boxplot(scale(data_num), xaxt = "n") 
-text(x = 1:length(data_num),
+boxplot(scale(data_under_num), xaxt = "n") 
+text(x = 1:length(data_under_num),
      y = par("usr")[3] - 0.8,
-     labels = names(data_num),
+     labels = names(data_under_num),
      xpd = NA,
      ## Rotate the labels by 35 degrees.
      srt = 35,
      cex = 0.8,
      adj = 1)
 
-diagnose_outlier(data) 
+#Diagnose Outliers
+diagnose_outlier(data_under_num) 
 
-data %>%
-  plot_outlier(diagnose_outlier(data) %>%
+#Visualize With And Without Outliers
+data_under_num %>%
+  plot_outlier(diagnose_outlier(data_under_num) %>%
                  filter(outliers_ratio >= 0.5) %>%          # dplyr
                  select(variables) %>%
                  unlist())
 
-# A Lot of outliers are present in the anual income.  This must 
-# be corrected: (remove!)
 
-
+# Define Outlier function
 outlier <- function(x){
   quantiles <- quantile(x, c(.05, .95))
   x[x < quantiles[1]] <- quantiles[1]
@@ -101,21 +97,25 @@ outlier <- function(x){
   x
 }
 
-data_num_without <- map_df(data_num, outlier)
+# Apply outlier function to data set
+data_under_num_without <- map_df(data_under_num, outlier)
 
-cols <- data_num
-data_without <- cbind(data, cols)
+#Visualize it again
+hist(data_under_num_without)
 
-data_without_num <- data_without %>%
-  select_if(is.numeric)
+boxplot(scale(data_under_num_without), xaxt = "n") 
+text(x = 1:length(data_under_num_without),
+     y = par("usr")[3] - 0.8,
+     labels = names(data_under_num_without),
+     xpd = NA,
+     ## Rotate the labels by 35 degrees.
+     srt = 35,
+     cex = 0.8,
+     adj = 1)
 
+# New data set without outliers
 
-diagnose_outlier(data_without_num)
-
-
-
-boxplot(data_without_num)
-hist(data_new_under)
+# ---- Code here ---- 
 
 #Looks good !
 
