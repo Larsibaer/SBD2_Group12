@@ -28,6 +28,9 @@ str(data)
 head(data)
 tail(data)
 
+#duplicates
+sum(duplicated(data))
+
 #summarize data
 summary(data)
 overview <- overview(data)
@@ -53,21 +56,22 @@ barplot(table(data_under$Status))
 
 #---------OUTLIERS------------------------------------------------------
 
+
 #Dimensions of new set
 dim(data_under)
 
 #Numeric Variables
 data_under_num <- data_under %>%
   select_if(is.numeric)
+data_under_num <- as.data.frame(data_under_num)
 
 
 #Categorical Variables
 data_under_cat <- data_under %>%
   select_if(is.character)
+data_under_cat <- as.data.frame(data_under_cat)
 
 
-#Visualize it
-hist(data_under_num)
 
 boxplot(scale(data_under_num), xaxt = "n") 
 text(x = 1:length(data_under_num),
@@ -81,6 +85,9 @@ text(x = 1:length(data_under_num),
 
 #Diagnose Outliers
 diagnose_outlier(data_under_num) 
+diagnose_numeric(data_under)
+
+
 
 #Visualize With And Without Outliers
 data_under_num %>%
@@ -90,24 +97,60 @@ data_under_num %>%
                  unlist())
 
 
-# Define Outlier function
-outlier <- function(x){
+# Define Outlier functions
+#Cap
+outlier_cap <- function(x){
   quantiles <- quantile(x, c(.05, .95))
   x[x < quantiles[1]] <- quantiles[1]
   x[x > quantiles[2]] <- quantiles[2]
   x
 }
 
+#Remove
+outlier_remove <- function(x){
+  quantiles <- quantile(x, c(.05, .95))
+  x[x < quantiles[1]] <- NA
+  x[x > quantiles[2]] <- NA
+  x
+}
+
+
+
+#diagnose_web_report(data_under_num)
+
+#Lets cap and see:
 # Apply outlier function to data set
-data_under_num_without <- map_df(data_under_num, outlier)
+data_under_num_capped <- map_df(data_under_num, outlier_cap)
 
-#Visualize it again
-hist(data_under_num_without)
 
-boxplot(scale(data_under_num_without), xaxt = "n") 
-text(x = 1:length(data_under_num_without),
+boxplot(scale(data_under_num_capped), xaxt = "n") 
+text(x = 1:length(data_under_num_capped),
      y = par("usr")[3] - 0.8,
-     labels = names(data_under_num_without),
+     labels = names(data_under_num_capped),
+     xpd = NA,
+     ## Rotate the labels by 35 degrees.
+     srt = 35,
+     cex = 0.8,
+     adj = 1)
+
+# New data set with capped outliers
+data_under_capped <- cbind(data_under_num_capped, data_under_cat)
+
+#Looks good !
+
+
+
+
+#Lets remove and compare:
+# Apply outlier function to data set
+data_under_num_removed <- map_df(data_under_num, outlier_remove)
+data_under_num_removed <- data_under_num_removed[complete.cases(data_under_num_removed),]
+
+
+boxplot(scale(data_under_num_removed), xaxt = "n") 
+text(x = 1:length(data_under_num_removed),
+     y = par("usr")[3] - 0.8,
+     labels = names(data_under_num_removed),
      xpd = NA,
      ## Rotate the labels by 35 degrees.
      srt = 35,
@@ -116,20 +159,65 @@ text(x = 1:length(data_under_num_without),
 
 # New data set without outliers
 
-data_under_without <- cbind(data_under_num_without, data_under_cat)
+data_under_removed <- cbind(data_under_num_removed, data_under_cat)
 
 #Looks good !
 
-#(Too good... where are the new outliers?)
+#impute only single cols
+diagnose_numeric(data_under_num)
+imp_income <- imputate_outlier(data_under, annual_inc, method = "median")
+imp_income
+summary(imp_income)
+
 
 #---------FEATURES------------------------------------------------------
 
 #Dimensions of new sets
-dim(data_under_without)
-dim(data_under_num_without)
+dim(data_under_capped)
+dim(data_under_num_capped)
+
+dim(data_under_removed)
+dim(data_under_num_removed)
+
+#shorter variable names
+clean <- data.frame(data_under_capped)
+clean_num <- data.frame(data_under_num_capped)
+
+#or go with outliers removed...
+#clean <- data_under_removed
+#clean_num <- data_under_num_removed
+
+
 
 #Correlation of numeric values to Status
 # ---- Code here ---- 
+
+
+corr <- cor(clean_num)
+corr
+
+ggcorrplot(corr)
+# --> no highly correlated data! thats good
+
+data_key <- clean %>%
+  as_tibble() %>%
+  select_if(is.numeric) %>%
+  gather(key = "variable", value = "value")
+
+data_key
+
+for (i in 1:length(clean_num)) {
+  print(ggplot(clean, aes(y = clean[,i], color = Status)) + 
+          geom_boxplot() + 
+          ylab(names(clean[i])) + 
+          theme(axis.title.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.ticks.x=element_blank()))
+}
+
+
+
+
 #Correlation of Categorical values to Status
 # ---- Code here ---- 
 
