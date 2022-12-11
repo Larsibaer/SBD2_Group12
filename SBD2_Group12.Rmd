@@ -58,24 +58,24 @@ summary(data)
 
 ### Check the levels of the target variable by choosing the appropriate visualization. Is the target variable balanced
 
-In the next step, we investigate our target variable. We notice that in our sample, we have 34'813 companies which did not default on their loan and we have 5'187 which did default. 
+In the next step, we investigate our target variable. We notice that in our sample, we have 34'813  loan contract which did not default and we have 5'187 which did default. 
 ```{r}
 table(data$Status)
 ```
 
 ### Check the distribution of the numeric variables in the data set (include different visual representations).
 
-```{r, echo=FALSE}
-PercTable(data$Status)
-```
+```{r, fig.width=20, fig.height=20}
+# Simple visualization of the full data 
+nums <- data %>% dplyr::select(where(is.numeric))
+boxplot(scale(nums[,1:11]), use.cols = TRUE)
 
-```{r}
-ggplot(data = data, 
-       aes(x = data$loan_amnt)) +
-  geom_histogram(fill = "steelblue",
-                 color = "steelblue",
-                 binwidth = 1000) +
-  labs(title = "Distribution",
-       x = "",
-       y = "")
+for (i in 1:length(nums[,-c(1:11)])) {
+  print(ggplot(nums, 
+       aes(x = nums[,i],
+           fill = status)) +
+  geom_density(alpha = 0.2) +
+  xlab(names(nums[i])) +
+  ylab("Density"))
+}
 ```
