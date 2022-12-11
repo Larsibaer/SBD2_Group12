@@ -1,6 +1,6 @@
 ---
 title: "SBD2_Group12"
-author: "Lars Wenger"
+author: "Lars Wenger, Jonas Aemmer, Björn Langenskiöld"
 date: '2022'
 output:
     html_document:
@@ -93,7 +93,7 @@ data_under_cat <- data_under %>%
 data_under_cat <- as.data.frame(data_under_cat)
 dim(data_under_cat)
 
-boxplot(scale(data_under_num), xaxt = "n")
+boxplot(scale(data_under_num), main = "Boxplot with outliers", xaxt = "n")
 text(x = 1:length(data_under_num),
      y = par("usr")[3] - 0.8,
      labels = names(data_under_num),
@@ -139,7 +139,7 @@ data_under_num_removed <- map_df(data_under_num, outlier_remove)
 data_under_num_removed <- data_under_num_removed[complete.cases(data_under_num_removed),]
 
 
-boxplot(scale(data_under_num_removed), xaxt = "n")
+boxplot(scale(data_under_num_removed),main = "Boxplot with cleaned outliers", xaxt = "n")
 text(x = 1:length(data_under_num_removed),
      y = par("usr")[3] - 0.8,
      labels = names(data_under_num_removed),
@@ -165,12 +165,21 @@ summary(imp_income)
 
 ##Choose the appropriate visualization to investigate the distribution of the numeric features per the two levels of our target feature (i.e. default vs non-default).
 ```{r}
-
+for (i in 1:length(data_under_removed[,-c(12:17)])) {
+  print(ggplot(data_under, aes(y = data_under_removed[,i], color = Status)) + 
+  geom_boxplot() + 
+  ylab(names(data_under_removed[i])) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()))}
 ```
 
 ##Use a bar plot visualization to investigate the associations between the categorical variables and the target feature.
 ```{r}
-
+ggplot(data_under_removed, 
+       aes(x = grade, 
+           fill = Status)) + 
+  geom_bar(position = "dodge")
 ```
 
 ##Visualize the correlations that emerge between the numerical features.
@@ -184,7 +193,12 @@ ggcorrplot(corr, type = "lower", p.mat = p_value_mat)
 
 ##Plot an interactive scatter plot of the association between the loan amount requested and the annual income of the borrower.
 ```{r}
-
+ggplot(data_under_removed,
+       aes(x = loan_amnt, 
+           y = annual_inc)) +
+  geom_point(color = "steelblue") +
+  geom_smooth(method = "lm",
+              se = F)
 ```
 
 ##Create a new balanced data set where the two levels of the target variable will be equally represented; Create a bar plot of the newly created target variable.
