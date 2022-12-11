@@ -27,7 +27,6 @@ lapply(libraries, library, quietly = TRUE, character.only = TRUE)
 rm(list=ls())
 
 set.seed(7)
-
 setwd("C:/Users/Student/SBD2/SBD2_Group12")
 data <- read_csv("loan_sample_12.csv")
 data <- data.frame(data)
