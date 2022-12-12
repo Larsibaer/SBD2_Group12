@@ -11,10 +11,15 @@ output:
   word_document: default
   pdf_document: default
 ---
-````{r setup, include=FALSE, echo=FALSE}
-# Getting started 
+```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+# Groupproject 12 {.tabset}
 
+## Preparations
+
+### Import modules
+````{r setup, include=FALSE, echo=FALSE}
 libraries = c("readr", "ggplot2","Boruta", "dlookr", "ROCR", "caret", "pROC", "dplyr", "ROSE", "corrplot", "DescTools", "ggpubr", "tidyverse", "RColorBrewer", "ggcorrplot", "PerformanceAnalytics", "corrr", "networkD3", "reshape", "knitr")
  
 lapply(libraries, function(x) if (!(x %in% installed.packages())) {
@@ -31,50 +36,73 @@ data <- read_csv("loan_sample_12.csv")
 data <- data.frame(data)
 ```
 
-#Exercise 1
-## Data description
-### What are the dimensions of the data set?
+### Import Data
+
+```{r}
+rm(list=ls())
+
+set.seed(7)
+setwd("C:/Users/Student/SBD2/SBD2_Group12")
+data_loans <- read_csv("loan_sample_12.csv")
+# Copy dataset
+data <- data_loans
+data <- data.frame(data)
+```
+## Exercise 1
+### Data description
+#### What are the dimensions of the data set?
 For this we use the function str(). We see, that there are 40'000 observations of 17 variables.
 ```{r, echo=FALSE}
 str(data)
 ```
 
-### How many numeric and how many categorical variables are included in the data?
-For this we use also the function str(). We see, that there are 12 numerical and 5 characterical variables.
+#### How many numeric and how many categorical variables are included in the data?
+For this we use the function overview(). We see, that there are 12 numerical and 5 categorical variables.
 ```{r}
-str(data)
+overview(data)
 ```
 
-### Summarize the variables. Discuss the summary statistics obtained.
-To Summarize the variables we use the function summary(). Looking at the variables we can see that the mean of most variables is close to their median, indicating a low ocurrence of outliers. The only exception here is the variable "tot_cur_bal" which has a big difference between mean and median, indicating a higher occurence of outliers. The variable "Status" is also special, containing only values of 0 and 1.
+#### Summarize the variables. Discuss the summary statistics obtained.
+To Summarize the variables we use the function summary(). Looking at the variables we can see that the mean of most variables is close to their median, indicating a low ocurrence of outliers. The only exception here is the variable "tot_cur_bal" which has a big difference between mean and median, indicating a higher occurence of outliers.
 ```{r}
 summary(data)
 ```
 
-### Check the levels of the target variable by choosing the appropriate visualization. Is the target variable balanced?
+#### Check the levels of the target variable by choosing the appropriate visualization. Is the target variable balanced?
+
 In the next step, we investigate our target variable. We notice that in our sample, we have 34'813 companies which did not default on their loan and we have 5'187 which did default. 
+
 ```{r}
-table(data$Status)
-barplot(table(data$Status))
+PercTable(data$Status)
+ggplot(data, aes(x = Status, fill = Status)) +
+  geom_bar(fill = "steelblue",
+                 color = "grey") +
+  ylab("Count") +
+  xlab("Status")
 ```
 The target variable is not balanced, therefore we are going to undersample it. 
 ```{r}
 set.seed(7)
 data_balanced <- ovun.sample(Status ~ ., data=data, method = "under")
 data_under <- data.frame(data_balanced[["data"]])
-
-table(data_under$Status)
-barplot(table(data_under$Status))
 ```
 
-### Check the distribution of the numeric variables in the data set (include different visual representations).
+#### Check the distribution of the numeric variables in the data set (include different visual representations).
+
 ```{r, echo=FALSE}
-PercTable(data$Status)
+PercTable(data_under$Status)
+ggplot(data_under, aes(x = Status, fill = Status)) +
+  geom_bar(fill = "steelblue",
+                 color = "grey") +
+  ylab("Count") +
+  xlab("Status")
 ```
 
 
 
-##Investigate whether certain variables contain outliers (hint: what does a box plot show?). Elaborate your view on how to proceed in dealing with the outliers and – if necessary – take appropriate action.
+### Investigate whether certain variables contain outliers (hint: what does a box plot show?). Elaborate your view on how to proceed in dealing with the outliers and – if necessary – take appropriate action.
+
+We investigated the occurances of outliers by creating a boxplot for every feature.
 
 ```{r}
 #Dimensions of new set
@@ -105,18 +133,23 @@ text(x = 1:length(data_under_num),
 
 #Diagnose Outliers
 diagnose_outlier(data_under_num)
-diagnose_numeric(data_under)
+diagnose_numeric(data_under_num)
+```
 
+We can now visualize all columns with and without outliers
 
-
+```{r}
 #Visualize With And Without Outliers
 data_under_num %>%
-  plot_outlier(diagnose_outlier(data_under_num) %>%
+  plot_outlier(col="steelblue", diagnose_outlier(data_under_num) %>%
                  filter(outliers_ratio >= 0.5) %>%          # dplyr
                  select(variables) %>%
                  unlist())
+```
 
+We see that without the outliers, the standard distribution is better almost everywhere. So now we create the standard function to replace the outliers with the 5th and 95th percentile values of the respective feature.
 
+```{r}
 # Define Outlier functions
 #Cap
 outlier_cap <- function(x){
@@ -126,31 +159,22 @@ outlier_cap <- function(x){
   x
 }
 
-#Remove
-outlier_remove <- function(x){
-  quantiles <- quantile(x, c(.05, .95))
-  x[x < quantiles[1]] <- NA
-  x[x > quantiles[2]] <- NA
-  x
-}
 
-# Apply outlier function to data set
-data_under_num_removed <- map_df(data_under_num, outlier_remove)
-data_under_num_removed <- data_under_num_removed[complete.cases(data_under_num_removed),]
+data_under_num_capped <- map_df(data_under_num, outlier_cap)
 
 
-boxplot(scale(data_under_num_removed),main = "Boxplot with cleaned outliers", xaxt = "n")
-text(x = 1:length(data_under_num_removed),
+boxplot(scale(data_under_num_capped), xaxt = "n", col="steelblue") 
+text(x = 1:length(data_under_num_capped),
      y = par("usr")[3] - 0.8,
-     labels = names(data_under_num_removed),
+     labels = names(data_under_num_capped),
      xpd = NA,
      ## Rotate the labels by 35 degrees.
      srt = 35,
      cex = 0.8,
      adj = 1)
 
-# New data set without outliers
-data_under_removed <- cbind(data_under_num, data_under_cat)
+# New data set with capped outliers
+data_under_capped <- cbind(data_under_num_capped, data_under_cat)
 
 #Looks good !
 
@@ -163,73 +187,153 @@ summary(imp_income)
 
 
 
-##Choose the appropriate visualization to investigate the distribution of the numeric features per the two levels of our target feature (i.e. default vs non-default).
+### Choose the appropriate visualization to investigate the distribution of the numeric features per the two levels of our target feature (i.e. default vs non-default).
+
 ```{r}
-for (i in 1:length(data_under_removed[,-c(12:17)])) {
-  print(ggplot(data_under, aes(y = data_under_removed[,i], color = Status)) + 
-  geom_boxplot() + 
-  ylab(names(data_under_removed[i])) + 
+for (i in 1:length(data_under_capped[,-c(12:17)])) {
+  print(ggplot(data_under, aes(y = data_under_capped[,i], color = Status)) + 
+  geom_boxplot(fill = "steelblue",
+                 color = "black") + 
+  ylab(names(data_under_capped[i])) + 
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()))}
+        axis.ticks.x=element_blank())+
+    labs(title = "Distribution",
+       y = names(data_under_capped[i])))}
 ```
 
-##Use a bar plot visualization to investigate the associations between the categorical variables and the target feature.
+### Use a bar plot visualization to investigate the associations between the categorical variables and the target feature.
+
+#### Association between Status and grade
+
 ```{r}
-ggplot(data_under_removed, 
-       aes(x = grade, 
-           fill = Status)) + 
-  geom_bar(position = "dodge")
+ggplot(data_under_capped, 
+       aes(x = Status, 
+           fill = grade)) + 
+  geom_bar(position = "stack")
 ```
 
-##Visualize the correlations that emerge between the numerical features.
+#### Association between Status and home_ownership
+
 ```{r}
+ggplot(data_under_capped, 
+       aes(x = Status, 
+           fill = home_ownership)) + 
+  geom_bar(position = "stack")
+```
+
+#### Association between Status and verification_status
+
+```{r}
+ggplot(data_under_capped, 
+       aes(x = Status, 
+           fill = verification_status)) + 
+  geom_bar(position = "stack")
+```
+
+#### Association between Status and purpose
+
+```{r}
+ggplot(data_under_capped, 
+       aes(x = Status, 
+           fill = purpose)) + 
+  geom_bar(position = "stack")
+```
+
+#### Association between Status and application_type
+
+```{r}
+ggplot(data_under_capped, 
+       aes(x = Status, 
+           fill = application_type)) + 
+  geom_bar(position = "stack")
+```
+
+### Visualize the correlations that emerge between the numerical features.
+
+#### Correlation
+In the next step, we look at the correlations that emerge between the variables
+
+```{r}
+clean_num <- data.frame(data_under_num_capped)
 corr <- cor(clean_num)
-ggcorrplot(corr)
-corrplot(corr)
 p_value_mat <- cor_pmat(clean_num)
-ggcorrplot(corr, type = "lower", p.mat = p_value_mat) 
+ggcorrplot(corr, type = "lower", p.mat = p_value_mat, ggtheme = ggplot2::theme_gray, colors = c("red", "white", "steelblue")) 
 ```
 
-##Plot an interactive scatter plot of the association between the loan amount requested and the annual income of the borrower.
+### Plot an interactive scatter plot of the association between the loan amount requested and the annual income of the borrower.
+
 ```{r}
-ggplot(data_under_removed,
+visualisation <- ggplot(data,
        aes(x = loan_amnt, 
            y = annual_inc)) +
   geom_point(color = "steelblue") +
   geom_smooth(method = "lm",
               se = F)
+
+#interactive
+ggplotly(visualisation)
 ```
 
-##Create a new balanced data set where the two levels of the target variable will be equally represented; Create a bar plot of the newly created target variable.
+### Create a new balanced data set where the two levels of the target variable will be equally represented; Create a bar plot of the newly created target variable.
+
 ```{r}
 set.seed(7)
 data_balanced <- ovun.sample(Status ~ ., data=data, method = "under")
 data_under <- data.frame(data_balanced[["data"]])
 
-table(data_under$Status)
-barplot(table(data_under$Status))
+barplot(table(data_under$Status), col="steelblue")
 ```
 
-#Exercise 2
-##Train and test a logistic classifier. Specifically
-###Divide the sample into training and testing set using 80% for training the algorithm.
+## Exercise 2
+
+### Train and test a logistic classifier. Specifically
+
+#### Boruta Algo
+
+To get the relevant variables we use the Boruta Algo function.
+
+```{r}
+clean <- data.frame(data_under_capped)
+clean_num <- data.frame(data_under_num_capped)
+clean$Status <- as.factor(clean$Status)
+
+#----takes 10-15min!!!!------
+boruta_output <- Boruta(Status~., data = clean, doTrace=2)
+
+boruta_signif <- getSelectedAttributes(boruta_output, withTentative = TRUE)
+print(boruta_signif)
+
+plot(boruta_output, cex.axis=.7, las=2, xlab="", main="Variable Importance") 
+
+Status <- clean$Status
+
+#Remove useless columns:
+features <- cbind(clean[boruta_signif], Status)
+```
+
+#### Divide the sample into training and testing set using 80% for training the algorithm.
+
 ```{r}
 set.seed(7)
 div <- createDataPartition(y = features$Status, p = 0.8, list = F)
 
 data.train <- features[div,]
+PercTable(data.train$Status)
 
 data.test <- features[-div,]
+PercTable(data.test$Status)
 ```
 
-###Train the classifier and report the coefficients obtained and interpret the results.
+#### Train the classifier and report the coefficients obtained and interpret the results.
+
 ```{r}
 fit1 <- glm(Status ~ ., data=data.train,family=binomial())
 summary(fit1)
 ```
 
-###Plot the ROC and the Precision/Recall Curve and interpret the results.
+#### Plot the ROC and the Precision/Recall Curve and interpret the results.
+
 ```{r}
 #ROC
 data.test$fit1_score <- predict(fit1,type='response',data.test)
@@ -243,28 +347,100 @@ fit1_precision <- performance(fit1_pred, measure = "prec", x.measure = "rec")
 plot(fit1_precision, main="Fit1: Logit - Precision vs Recall")
 ```
 
-###Produce the confusion matrix and interpret the results.
+#### Produce the confusion matrix and interpret the results.
+
 ```{r}
 confusionMatrix(as.factor(round(data.test$fit1_score)), data.test$Status)
 ```
 
-###Report the AUC values and the overall accuracy and interpret the results.
+#### Report the AUC values and the overall accuracy and interpret the results.
+
 ```{r}
 fit1_auc <- performance(fit1_pred, measure = "auc")
 cat("AUC: ",fit1_auc@y.values[[1]]*100)
 ```
 
-#Exercise 3
-##Can you think of a way to improve the predictive performance of your data?
+## Exercise 2 with all data
+```{r}
+## Training and testing without any data quality checks and feature selection
+
+# Split the data 
+set.seed(7)
+data$Status <- as.factor(data$Status)
+div_2 <- createDataPartition(y = data$Status, p = 0.7, list = F)
+
+# Training Sample
+data.train_2 <- data[div,] # 70% here
+
+# Test Sample
+data.test_2 <- data[-div,] # rest of the 30% data goes here
+
+
+
+# Fit the model
+fit2 <- glm(Status ~ ., data=data.train_2,family=binomial())
+summary(fit2)
+
+
+
+
+# Extract and compare the significant variables 
+significant.variables <- summary(fit2)$coeff[-1,4] < 0.05
+names(significant.variables)[significant.variables == TRUE]
+
+
+
+# Test the perfromance 
+data.test_2$fit2_score <- predict(fit2,type='response',data.test_2)
+fit2_pred <- prediction(data.test_2$fit2_score, data.test_2$Status)
+fit2_roc <- performance(fit2_pred, "tpr", "fpr")
+plot(fit2_roc, lwd=1, colorize = TRUE, main = "Fit2: Logit - ROC Curve")
+lines(x=c(0, 1), y=c(0, 1), col="black", lwd=1, lty=3)
+
+
+
+
+# Extract the confusion matrix 
+confusionMatrix(as.factor(round(data.test_2$fit2_score)), data.test_2$Status)
+
+
+
+# Extract the AUC value 
+fit2_auc <- performance(fit2_pred, measure = "auc")
+cat("AUC: ",fit2_auc@y.values[[1]]*100)
+```
+
+
+## Exercise 3
+
+### Can you think of a way to improve the predictive performance of your data?
+
 There are several possible ways to improve the predictive performance of our data. For example the handling of outliers as the way dealt with outliers can have a huge outcome on how the predictive performance of the affected data. Furthermore the usage of more training data will most certainly improve the performance of our mode.
 
-##What can you do differently? (hint: Feel free to be creative and discuss any additional step in data collection and/or data pre-processing that you might try so to improve the results)
+In addition to that, the most powerful way to improve the performance would be to use additional data.
+
+### What can you do differently?
+
 The collection of additional Data to provide more training data could be a way to improve our results. In addition to that we could change/play around the way dealt with outliers in our process to test wheter or not the results would improve.
 
-#Exercise 4
-##What kind of challenges may a company face if it would use your model in their daily business, in particular in regard to ethical challenges and moral obligations companies have?
+Some examples of additional data could be:
+- Age
+- Job title
+- Education
+
+## Exercise 4
+
+### What kind of challenges may a company face if it would use your model in their daily business, in particular in regard to ethical challenges and moral obligations companies have?
+
 The model makes its decisions based on the data provided. As the model decides whether or not a loan contract is defaulted or not based on the data provided, this can become a challenge as the used data may not be accurate or big enough to train the model well enough to be able to make a fair decision if a loan contract is defaulted or not.
 In addition to that it is questionable if such a decision should be made by a model itself as there may be information that can not be considered by the model.
+Probably the biggest challenge for a company would be, that at the moment our model is only around 70% accurate. Therefor the model could make wrong decisions leading in to a possible lost of money.
 
-##Can you think of a way how companies can overcome or at least mitigate the issues that you described above?
+### Can you think of a way how companies can overcome or at least mitigate the issues that you described above?
+
 A possible way to mitigate such challenges could for example be to consider if all information needed to make such a decision is available in the data used for a model. Additionally it should be assessed whether or not the decision made by the model should be absoulte or act as a supportive indicator for the company.
+
+## SessionInfo
+```{r,echo=FALSE}
+sessionInfo()
+```
