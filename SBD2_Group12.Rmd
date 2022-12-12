@@ -2,14 +2,10 @@
 title: "SBD2_Group12"
 author: "Lars Wenger, Jonas Aemmer, Björn Langenskiöld"
 date: '2022'
-output:
-    html_document:
-    df_print: paged
+output: 
+  html_document:
     toc: true
     theme: united
-  HTML: default
-  word_document: default
-  pdf_document: default
 ---
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -19,8 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Preparations
 
 ### Import modules
-````{r setup, include=FALSE, echo=FALSE}
-libraries = c("readr", "ggplot2","Boruta", "dlookr", "ROCR", "caret", "pROC", "dplyr", "ROSE", "corrplot", "DescTools", "ggpubr", "tidyverse", "RColorBrewer", "ggcorrplot", "PerformanceAnalytics", "corrr", "networkD3", "reshape", "knitr")
+```{r, include=FALSE, echo=FALSE}
+libraries = c("readr", "ggplot2","Boruta", "dlookr", "ROCR", "caret", "pROC", "dplyr", "ROSE", "corrplot", "DescTools", "ggpubr", "tidyverse", "RColorBrewer", "ggcorrplot", "PerformanceAnalytics", "corrr", "networkD3", "reshape", "knitr" , "plotly")
  
 lapply(libraries, function(x) if (!(x %in% installed.packages())) {
   install.packages(x)
@@ -80,7 +76,9 @@ ggplot(data, aes(x = Status, fill = Status)) +
   ylab("Count") +
   xlab("Status")
 ```
-The target variable is not balanced, therefore we are going to undersample it. 
+
+The target variable is not balanced, therefore we are going to undersample it.
+
 ```{r}
 set.seed(7)
 data_balanced <- ovun.sample(Status ~ ., data=data, method = "under")
@@ -100,7 +98,7 @@ ggplot(data_under, aes(x = Status, fill = Status)) +
 
 
 
-### Investigate whether certain variables contain outliers (hint: what does a box plot show?). Elaborate your view on how to proceed in dealing with the outliers and – if necessary – take appropriate action.
+### Investigate whether certain variables contain outliers. Elaborate your view on how to proceed in dealing with the outliers and – if necessary – take appropriate action.
 
 We investigated the occurances of outliers by creating a boxplot for every feature.
 
@@ -121,7 +119,7 @@ data_under_cat <- data_under %>%
 data_under_cat <- as.data.frame(data_under_cat)
 dim(data_under_cat)
 
-boxplot(scale(data_under_num), main = "Boxplot with outliers", xaxt = "n")
+boxplot(scale(data_under_num), main = "Boxplot with outliers", xaxt = "n", col = "steelblue")
 text(x = 1:length(data_under_num),
      y = par("usr")[3] - 0.8,
      labels = names(data_under_num),
@@ -181,7 +179,6 @@ data_under_capped <- cbind(data_under_num_capped, data_under_cat)
 #impute only single cols
 diagnose_numeric(data_under_num)
 imp_income <- imputate_outlier(data_under, annual_inc, method = "median")
-imp_income
 summary(imp_income)
 ```
 
@@ -210,7 +207,8 @@ for (i in 1:length(data_under_capped[,-c(12:17)])) {
 ggplot(data_under_capped, 
        aes(x = Status, 
            fill = grade)) + 
-  geom_bar(position = "stack")
+  geom_bar(position = "stack") +
+  scale_fill_brewer()
 ```
 
 #### Association between Status and home_ownership
@@ -219,7 +217,8 @@ ggplot(data_under_capped,
 ggplot(data_under_capped, 
        aes(x = Status, 
            fill = home_ownership)) + 
-  geom_bar(position = "stack")
+  geom_bar(position = "stack") +
+  scale_fill_brewer()
 ```
 
 #### Association between Status and verification_status
@@ -228,7 +227,8 @@ ggplot(data_under_capped,
 ggplot(data_under_capped, 
        aes(x = Status, 
            fill = verification_status)) + 
-  geom_bar(position = "stack")
+  geom_bar(position = "stack")+
+  scale_fill_brewer()
 ```
 
 #### Association between Status and purpose
@@ -246,7 +246,8 @@ ggplot(data_under_capped,
 ggplot(data_under_capped, 
        aes(x = Status, 
            fill = application_type)) + 
-  geom_bar(position = "stack")
+  geom_bar(position = "stack")+
+  scale_fill_brewer()
 ```
 
 ### Visualize the correlations that emerge between the numerical features.
@@ -304,7 +305,7 @@ boruta_output <- Boruta(Status~., data = clean, doTrace=2)
 boruta_signif <- getSelectedAttributes(boruta_output, withTentative = TRUE)
 print(boruta_signif)
 
-plot(boruta_output, cex.axis=.7, las=2, xlab="", main="Variable Importance") 
+plot(boruta_output, cex.axis=.7, las=2, xlab="", main="Variable Importance",  col="steelblue") 
 
 Status <- clean$Status
 
@@ -330,6 +331,10 @@ PercTable(data.test$Status)
 ```{r}
 fit1 <- glm(Status ~ ., data=data.train,family=binomial())
 summary(fit1)
+
+#only show significant variables:
+significant.variables <- summary(fit1)$coeff[-1,4] < 0.05
+names(significant.variables)[significant.variables == TRUE]
 ```
 
 #### Plot the ROC and the Precision/Recall Curve and interpret the results.
@@ -359,6 +364,9 @@ confusionMatrix(as.factor(round(data.test$fit1_score)), data.test$Status)
 fit1_auc <- performance(fit1_pred, measure = "auc")
 cat("AUC: ",fit1_auc@y.values[[1]]*100)
 ```
+
+In this case, the AUC value is 0.7, which indicates that the model does not perform very well in discriminating between the positive and negative classes. 
+
 
 ## Exercise 2 with all data
 ```{r}
@@ -415,7 +423,7 @@ cat("AUC: ",fit2_auc@y.values[[1]]*100)
 
 ### Can you think of a way to improve the predictive performance of your data?
 
-There are several possible ways to improve the predictive performance of our data. For example the handling of outliers as the way dealt with outliers can have a huge outcome on how the predictive performance of the affected data. Furthermore the usage of more training data will most certainly improve the performance of our mode.
+There are several possible ways to improve the predictive performance of our data. For example the handling of outliers as the way dealt with outliers can have a huge outcome on how the predictive performance of the affected data. Furthermore the usage of more training data will most certainly improve the performance of our mode. Also we could use advanced algorithms such as Random Forests, Boosted Trees, and Support Vector Machines.
 
 In addition to that, the most powerful way to improve the performance would be to use additional data.
 
@@ -424,8 +432,11 @@ In addition to that, the most powerful way to improve the performance would be t
 The collection of additional Data to provide more training data could be a way to improve our results. In addition to that we could change/play around the way dealt with outliers in our process to test wheter or not the results would improve.
 
 Some examples of additional data could be:
-- Age
-- Job title
+
+- Geographic location of the borrower
+
+- Payment history (for existing loans)
+
 - Education
 
 ## Exercise 4
