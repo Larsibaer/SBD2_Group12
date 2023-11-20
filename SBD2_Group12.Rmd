@@ -1,5 +1,5 @@
 ---
-title: "SBD2_Group12"
+title: "SBD2_Group_12"
 author: "Lars Wenger, Jonas Aemmer, Björn Langenskiöld"
 date: '2022'
 output: 
